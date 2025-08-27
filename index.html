@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🥕 KarrotDex</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <style>
+    body { font-family: 'Arial', sans-serif; background-color: #0a0a0a; color: #fff; }
+    .background-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -10; background-color: #0a0a0a; }
+    .background-layer::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: url('img/ember-particles.gif'); background-size: cover;
+      opacity: 0.4; mix-blend-mode: screen; z-index: -2;
+    }
+    .background-layer::after {
+      content: ''; position: absolute; inset: 0;
+      background-image: url('img/stake-karrot-bg.png'); background-size: cover;
+      background-repeat: no-repeat; background-position: center;
+      opacity: 0.15; z-index: -1;
+    }
+    .token-icon { width: 24px; height: 24px; border-radius: 50%; margin-right: 0.5rem; }
+    .text-karrot-orange { color: #FF7F11; }
+    .bg-karrot-orange { background-color: #FF7F11; }
+    .bg-karrot-yellow { background-color: #FFB84C; }
+    .hover-karrot-orange:hover { background-color: #ff912b; }
+    .hover-karrot-yellow:hover { background-color: #ffc462; }
+    .tab-active { background-color: #FF7F11; color: white; box-shadow: 0 0 10px #FF7F11; }
+    button { transition: background-color 0.3s ease; }
+    .card-bg {
+      background-color: rgba(255, 127, 17, 0.15);
+      border-radius: 1rem; backdrop-filter: blur(10px);
+      box-shadow: 0 0 15px #FF7F11AA; padding: 1.5rem; margin-top: 1rem;
+    }
+    input, select {
+      background-color: #1e1e1e; color: #fff; border: none;
+      padding: 0.75rem; border-radius: 0.5rem;
+      outline: none; width: 100%; font-size: 1rem;
+    }
+    input::placeholder { color: #bbb; }
+    @media (max-width: 768px) {
+      .token-section { flex-direction: column; }
+    }
+  </style>
+</head>
+<body class="relative min-h-screen overflow-x-hidden text-white bg-black">
+
+  <div class="background-layer"></div>
+
+  <!-- Header -->
+  <header class="flex justify-between items-center p-4">
+    <div class="flex items-center space-x-2 text-3xl font-bold text-karrot-orange">
+      <span>🥕</span><span>KarrotDex</span>
+    </div>
+    <img src="img/karrot-hex.jpg" alt="Karrot Logo" class="w-12 h-12 rounded-full shadow-lg" />
+    <button id="connectWallet" class="ml-4 px-4 py-2 bg-karrot-orange hover-karrot-orange rounded text-white font-semibold">
+      Connect Wallet
+    </button>
+  </header>
+
+  <!-- Aggregator + Swap Panel Container -->
+  <main class="flex flex-col items-center p-6 space-y-6">
+
+    <!-- Aggregator Switcher -->
+    <div class="w-full max-w-md card-bg p-4">
+      <label for="aggregator" class="block mb-2 text-karrot-yellow font-semibold">Aggregator:</label>
+      <select id="aggregator" class="w-full"></select>
+    </div>
+
+    <!-- Swap Panel -->
+    <div class="w-full max-w-md card-bg shadow-2xl">
+      <!-- From Token -->
+      <div class="mb-4">
+        <label class="block text-sm text-karrot-yellow mb-1">From</label>
+        <div class="flex items-center bg-gray-900 p-3 rounded">
+          <img id="fromIcon" class="token-icon" src="img/default-token.png" alt="From Token" />
+          <select id="tokenFrom" class="bg-transparent flex-1 outline-none"></select>
+        </div>
+        <div class="text-xs mt-1 text-right text-karrot-yellow" id="balanceFrom">Balance: 0.00</div>
+      </div>
+
+      <!-- Switch Tokens -->
+      <div class="flex justify-center mb-4">
+        <button id="switchTokens" class="text-karrot-orange text-2xl hover:text-white transition">⇅</button>
+      </div>
+
+      <!-- To Token -->
+      <div class="mb-4">
+        <label class="block text-sm text-karrot-yellow mb-1">To</label>
+        <div class="flex items-center bg-gray-900 p-3 rounded">
+          <img id="toIcon" class="token-icon" src="img/default-token.png" alt="To Token" />
+          <select id="tokenTo" class="bg-transparent flex-1 outline-none"></select>
+        </div>
+        <div class="text-xs mt-1 text-right text-karrot-yellow" id="balanceTo">Balance: 0.00</div>
+      </div>
+
+      <!-- Amount -->
+      <div class="mb-4">
+        <label for="amountFrom" class="block text-sm text-karrot-yellow mb-1">Amount</label>
+        <input type="text" id="amountFrom" name="amountFrom" placeholder="0.0" />
+      </div>
+
+      <!-- 🔧 Advanced Options -->
+      <div id="advancedSettings" class="mb-4">
+        <!-- Slippage Tolerance -->
+        <label for="slippage" class="block text-sm text-karrot-yellow mb-1">Slippage Tolerance (%)</label>
+        <input type="number" id="slippage" placeholder="0.5" min="0" max="50" step="0.1" />
+
+        <!-- Cross-Chain Mode Toggle -->
+        <div class="mt-4">
+          <label class="inline-flex items-center space-x-2 text-sm text-karrot-yellow">
+            <input type="checkbox" id="useCrossChain" class="form-checkbox text-karrot-orange" />
+            <span>Enable Cross-Chain Mode</span>
+          </label>
+        </div>
+
+        <!-- Cross-Chain PxAsset Selector -->
+        <div id="pxAssetSection" class="hidden mt-4">
+          <label for="pxAsset" class="block text-sm text-karrot-yellow mb-1">Select PxAsset (Top Stocks)</label>
+          <select id="pxAsset" class="bg-gray-900 p-2 rounded w-full">
+            <option value="pxAAPL">Apple (AAPL)</option>
+            <option value="pxTSLA">Tesla (TSLA)</option>
+            <option value="pxNVDA">NVIDIA (NVDA)</option>
+            <option value="pxAMZN">Amazon (AMZN)</option>
+            <option value="pxGOOG">Google (GOOG)</option>
+            <option value="pxPLTR">Palantir (PLTR)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Custom Address -->
+      <div class="mb-4">
+        <label class="inline-flex items-center space-x-2 text-sm text-karrot-yellow">
+          <input type="checkbox" id="useCustomAddress" class="form-checkbox text-karrot-orange" />
+          <span>Send to different address</span>
+        </label>
+        <input type="text" id="customAddress" class="hidden mt-2 w-full bg-gray-900 p-2 rounded" placeholder="0xWallet..." />
+      </div>
+
+      <!-- Swap Button -->
+      <button id="btnSwap" class="w-full py-3 mt-4 bg-karrot-orange hover-karrot-orange rounded text-white font-semibold flex items-center justify-center">
+        <span id="swapBtnText">Swap</span>
+        <svg id="swapSpinner" class="hidden animate-spin h-5 w-5 ml-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+  </button>
+</div>
+
+</main>
+
+  <!-- External Lib -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+
+  <!-- Your JS as Module -->
+  <script type="module">
+    import { populateTokens, updateIcons, setAggregator, executeSwap } from './scripts/aggregator.js';
+    import { tokenMap } from './scripts/tokenMap.js';
+
+    const aggregatorSelect = document.getElementById("aggregator");
+    const tokenFrom = document.getElementById("tokenFrom");
+    const tokenTo = document.getElementById("tokenTo");
+    const fromIcon = document.getElementById("fromIcon");
+    const toIcon = document.getElementById("toIcon");
+
+    // Load available aggregators
+    Object.keys(tokenMap).forEach(name => {
+      aggregatorSelect.add(new Option(name, name));
+    });
+    aggregatorSelect.value = "PulseX";
+    setAggregator("PulseX");
+
+    aggregatorSelect.addEventListener("change", () => {
+      setAggregator(aggregatorSelect.value);
+      populateTokens();
+    });
+
+    tokenFrom.addEventListener("change", updateIcons);
+    tokenTo.addEventListener("change", updateIcons);
+
+    document.getElementById("btnSwap").addEventListener("click", async () => {
+      const amount = document.getElementById("amountFrom").value;
+      if (!amount || isNaN(amount)) return alert("Enter valid amount");
+
+      let userAddr;
+      try {
+        const [acct] = await window.ethereum.request({ method: "eth_requestAccounts" });
+        userAddr = acct;
+      } catch {
+        return alert("Connect wallet");
+      }
+
+      await executeSwap(tokenFrom.value, tokenTo.value, amount, userAddr);
+    });
+
+    // Initial setup
+    window.addEventListener('DOMContentLoaded', populateTokens);
+    
+  </script>
+</body>
+</html>

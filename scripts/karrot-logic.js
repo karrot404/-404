@@ -1,5 +1,3 @@
-// karrot-logic.js
-
 import { swapPulseX } from './aggregators/pulsex.js';
 import { swapRay } from './aggregators/ray.js';
 import { swapZK } from './aggregators/zk.js';
@@ -15,7 +13,6 @@ import { getLibertySwapQuote } from './aggregators/libertyswap.js';
 
 import { tokenMap } from './tokenMap.js';
 
-// Default aggregator
 let selectedAggregator = "PulseX";
 
 // DOM Elements
@@ -24,14 +21,14 @@ const tokenTo = document.getElementById("tokenTo");
 const fromIcon = document.getElementById("fromIcon");
 const toIcon = document.getElementById("toIcon");
 
-// ⚙️ Allow aggregator switching
+// Aggregator switching
 export function setAggregator(name) {
   selectedAggregator = name;
   console.log(`[Aggregator Set] → ${selectedAggregator}`);
   populateTokens();
 }
 
-// 🔁 Update token icons + check for same-token warning
+// Token icon update and warning for identical selection
 export function updateIcons() {
   const tokens = tokenMap[selectedAggregator] || [];
   const fromMeta = tokens.find(t => t.address === tokenFrom.value);
@@ -43,10 +40,10 @@ export function updateIcons() {
   fromIcon.onerror = () => { fromIcon.src = "img/default-token.png"; };
   toIcon.onerror = () => { toIcon.src = "img/default-token.png"; };
 
-  handleLikeTokenWarning(); // 👈 Check if same token selected
+  handleLikeTokenWarning();
 }
 
-// ⚠️ Warn if same token selected for From and To
+// Highlight warning if tokens are the same
 function handleLikeTokenWarning() {
   const sameToken = tokenFrom.value === tokenTo.value;
   if (sameToken) {
@@ -58,7 +55,7 @@ function handleLikeTokenWarning() {
   }
 }
 
-// 🔁 Populate token dropdowns based on selected aggregator
+// Populate token select inputs
 export function populateTokens() {
   const tokens = tokenMap[selectedAggregator] || [];
 
@@ -66,10 +63,8 @@ export function populateTokens() {
   tokenTo.innerHTML = "";
 
   tokens.forEach(token => {
-    const optionFrom = new Option(token.label, token.address);
-    const optionTo = new Option(token.label, token.address);
-    tokenFrom.add(optionFrom);
-    tokenTo.add(optionTo);
+    tokenFrom.add(new Option(token.label, token.address));
+    tokenTo.add(new Option(token.label, token.address));
   });
 
   tokenFrom.value = tokens[0]?.address;
@@ -78,40 +73,58 @@ export function populateTokens() {
   updateIcons();
 }
 
-// 🚀 Master Swap Execution
-export async function executeSwap(tokenIn, tokenOut, amount, userAddr) {
+// 🚀 Extended Swap Execution with Advanced Options
+export async function executeSwap(tokenIn, tokenOut, amount, recipient, options = {}) {
+  const {
+    slippage = 0.5,
+    useCrossChain = false,
+    pxAsset = null
+  } = options;
+
+  console.log(`[Executing Swap] Aggregator: ${selectedAggregator}`);
+  console.log({
+    tokenIn, tokenOut, amount, recipient,
+    slippage, useCrossChain, pxAsset
+  });
+
+  const swapArgs = { tokenIn, tokenOut, amount, recipient, slippage, useCrossChain, pxAsset };
+
   switch (selectedAggregator) {
     case "PulseX":
-      return swapPulseX(tokenIn, tokenOut, amount, userAddr);
+      return swapPulseX(swapArgs);
     case "Ray":
-      return swapRay(tokenIn, tokenOut, amount, userAddr);
+      return swapRay(swapArgs);
     case "ZK":
-      return swapZK(tokenIn, tokenOut, amount, userAddr);
+      return swapZK(swapArgs);
     case "9mm":
-      return swap9mm(tokenIn, tokenOut, amount, userAddr);
+      return swap9mm(swapArgs);
     case "Piteas":
-      return swapPiteas(tokenIn, tokenOut, amount, userAddr);
+      return swapPiteas(swapArgs);
     case "Uniswap":
-      return swapUniswap(tokenIn, tokenOut, amount, userAddr);
+      return swapUniswap(swapArgs);
     case "PancakeSwap":
-      return swapPancakeSwap(tokenIn, tokenOut, amount, userAddr);
+      return swapPancakeSwap(swapArgs);
     case "CowSwap":
-      return swapCowSwap(tokenIn, tokenOut, amount, userAddr);
+      return swapCowSwap(swapArgs);
     case "1inch":
-      return swap1inch(tokenIn, tokenOut, amount, userAddr);
+      return swap1inch(swapArgs);
     case "Matcha":
-      return swapMatcha(tokenIn, tokenOut, amount, userAddr);
+      return swapMatcha(swapArgs);
     case "ThorSwap":
-      return swapThorSwap(tokenIn, tokenOut, amount, userAddr);
+      return swapThorSwap(swapArgs);
     case "LibertySwap":
       return getLibertySwapQuote({
-        tokenIn,
-        tokenOut,
-        amount,
-        userAddr,
+        tokenIn, tokenOut, amount, userAddr: recipient,
         fromChain: 'ETH',
-        toChain: 'ETH',
+        toChain: useCrossChain ? 'SOL' : 'ETH',
+        slippage,
+        pxAsset
       });
+    default:
+      throw new Error("Unknown aggregator: " + selectedAggregator);
+  }
+}
+
     default:
       throw new Error("Unknown aggregator: " + selectedAggregator);
   }
